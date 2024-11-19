@@ -21,7 +21,7 @@ This project uses higher-order Markov Chains to predict the daily percentage cha
 
 3. **Prepare the CSV file**:
 
-    Place your CSV data (named `s&p500_data.csv`) in the project directory. The CSV should contain the following columns:
+    Update CSV data (named `s&p500_data.csv`) in the project directory. The CSV should contain the following columns:
     
     ```
     Date, Daily Change, Change Rounded, Close/Last, Open, High, Low
