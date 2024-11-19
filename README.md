@@ -85,7 +85,3 @@ If you enter a k-value of 3 and a daily change of `0.5%`, the app will:
 - **Model Tuning**: Experiment with different order Markov Chains and other models like HMM (Hidden Markov Models) or machine learning approaches to improve predictions.
 - **Deploy the App**: Host the app on a cloud platform like Heroku or AWS for public access.
 
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
