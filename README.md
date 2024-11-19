@@ -7,8 +7,8 @@ This project uses higher-order Markov Chains to predict the daily percentage cha
 1. **Clone the repository**:
 
     ```bash
-    git clone https://github.com/your-username/s&p500-prediction.git
-    cd s&p500-prediction
+    git clone https://github.com/xpalsetia/S-PMarkovChains.git
+    cd S-PMarkovChains
     ```
 
 2. **Install dependencies**:
