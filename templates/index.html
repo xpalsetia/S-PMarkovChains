@@ -3,28 +3,259 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>S&P 500 Markov Chain Prediction</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <title>S&P 500 Markov Chain Predictor</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+        input[type="number"] {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            width: 100%;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .result {
+            margin-top: 30px;
+            padding: 20px;
+            border-radius: 5px;
+            border-left: 4px solid #007bff;
+            background-color: #f8f9fa;
+        }
+        .error {
+            margin-top: 30px;
+            padding: 20px;
+            border-radius: 5px;
+            border-left: 4px solid #dc3545;
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .info {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #e9ecef;
+            border-radius: 5px;
+            font-size: 14px;
+            color: #6c757d;
+        }
+        .recent-states {
+            margin-top: 15px;
+            padding: 10px;
+            background-color: #fff3cd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        .status {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .status.loaded {
+            background-color: #d1edff;
+            color: #0c5460;
+        }
+        .status.error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .custom-input {
+            width: 100%;
+            padding: 8px;
+            margin: 5px 0;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            font-size: 14px;
+        }
+        .input-label {
+            font-size: 14px;
+            margin-bottom: 3px;
+            color: #666;
+        }
+    </style>
 </head>
 <body>
     <div class="container">
-        <h1>S&P 500 Markov Chain Prediction</h1>
+        <h1>📈 S&P 500 Markov Chain Predictor</h1>
+        
+        {% if data_loaded %}
+        <div class="status loaded">
+            ✅ Data loaded successfully: {{ total_data_points }} data points ({{ data_range }})
+        </div>
+        {% else %}
+        <div class="status error">
+            ❌ No data loaded. Please ensure s&p500_data.csv is in the correct location.
+        </div>
+        {% endif %}
+
         <form method="POST">
-            <label for="k_value">Enter the k-value (Order of Markov Chain):</label>
-            <input type="number" id="k_value" name="k_value" required>
+            <div class="form-group">
+                <label for="k_value">Markov Chain Order (K-value):</label>
+                <input type="number" id="k_value" name="k_value" min="1" max="10" value="2" required onchange="updateCustomInputs()">
+                <small style="color: #6c757d;">
+                    Higher values consider more historical states but may be less reliable due to data sparsity.
+                    Recommended: 1-3 for most cases.
+                </small>
+            </div>
 
-            <label for="daily_change">Enter the daily percentage change for prediction:</label>
-            <input type="number" step="any" id="daily_change" name="daily_change" required>
+            <div class="form-group">
+                <label>Prediction Mode:</label>
+                <div style="margin: 10px 0;">
+                    <input type="radio" id="historical" name="prediction_mode" value="historical" checked onchange="togglePredictionMode()">
+                    <label for="historical" style="display: inline; margin-left: 5px; font-weight: normal;">
+                        📊 Use Recent Historical Data
+                    </label>
+                </div>
+                <div style="margin: 10px 0;">
+                    <input type="radio" id="custom" name="prediction_mode" value="custom" onchange="togglePredictionMode()">
+                    <label for="custom" style="display: inline; margin-left: 5px; font-weight: normal;">
+                        ✏️ Enter Custom Daily Changes
+                    </label>
+                </div>
+            </div>
 
-            <button type="submit">Predict</button>
+            <div id="custom-inputs" style="display: none;">
+                <div class="form-group">
+                    <label>Enter the last <span id="k-display">2</span> daily percentage changes:</label>
+                    <small style="color: #6c757d; display: block; margin-bottom: 10px;">
+                        Enter values like: 1.5 for +1.5%, -0.8 for -0.8%, 0 for no change
+                    </small>
+                    <div id="custom-change-inputs">
+                        <!-- Dynamic inputs will be inserted here -->
+                    </div>
+                </div>
+            </div>
+            
+            <button type="submit" {% if not data_loaded %}disabled{% endif %}>
+                🔮 Predict Next Day's Movement
+            </button>
         </form>
 
-        {% if prediction %}
-            <div class="result">
-                <p>{{ prediction }}</p>
-                <p>{{ probability }}</p>
-            </div>
+        {% if error %}
+        <div class="error">
+            <strong>Error:</strong> {{ error }}
+        </div>
         {% endif %}
+
+        {% if prediction %}
+        <div class="result">
+            <h3>🎯 Prediction Result:</h3>
+            <p><strong>{{ prediction }}</strong></p>
+            <p>{{ probability }}</p>
+            {% if method_used %}
+            <p><em>{{ method_used }}</em></p>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        {% if recent_states_info %}
+        <div class="recent-states">
+            <strong>📊 {{ recent_states_info }}</strong>
+        </div>
+        {% endif %}
+
+        {% if custom_states_info %}
+        <div class="recent-states">
+            <strong>✏️ {{ custom_states_info }}</strong>
+        </div>
+        {% endif %}
+
+        <div class="info">
+            <h4>How it works:</h4>
+            <p>This predictor uses a Markov Chain to analyze historical S&P 500 daily changes and predict tomorrow's movement category. The model:</p>
+            <ul>
+                <li>Groups daily changes into 8 categories (Large Drop to Large Rise)</li>
+                <li>Builds transition probabilities between state sequences</li>
+                <li>Uses the most recent K days to predict tomorrow's category</li>
+                <li>Falls back to simpler models if exact patterns aren't found</li>
+            </ul>
+            <p><small><em>Note: This is for educational purposes only and should not be used for actual investment decisions.</em></small></p>
+        </div>
     </div>
+
+    <script>
+        function togglePredictionMode() {
+            const customMode = document.getElementById('custom').checked;
+            const customInputs = document.getElementById('custom-inputs');
+            
+            if (customMode) {
+                customInputs.style.display = 'block';
+                updateCustomInputs();
+            } else {
+                customInputs.style.display = 'none';
+            }
+        }
+
+        function updateCustomInputs() {
+            const kValue = parseInt(document.getElementById('k_value').value);
+            const container = document.getElementById('custom-change-inputs');
+            const kDisplay = document.getElementById('k-display');
+            
+            kDisplay.textContent = kValue;
+            
+            // Clear existing inputs
+            container.innerHTML = '';
+            
+            // Create new inputs based on k-value
+            for (let i = 0; i < kValue; i++) {
+                const dayLabel = kValue === 1 ? 'Today' : `Day ${i + 1} (${kValue - i} days ago)`;
+                
+                const inputDiv = document.createElement('div');
+                inputDiv.innerHTML = `
+                    <div class="input-label">${dayLabel}:</div>
+                    <input type="number" 
+                           name="custom_change_${i}" 
+                           class="custom-input" 
+                           step="0.01" 
+                           placeholder="e.g., 1.5 or -0.8"
+                           min="-20" 
+                           max="20">
+                `;
+                container.appendChild(inputDiv);
+            }
+        }
+
+        // Initialize custom inputs on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            updateCustomInputs();
+        });
+    </script>
 </body>
 </html>
